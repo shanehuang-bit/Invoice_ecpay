@@ -32,7 +32,7 @@
     .metric .value { display:block; margin-bottom:5px; font-size:27px; font-weight:800; letter-spacing:-.04em; }
     .metric .label { color:var(--muted); font-size:13px; }
     .table-card { overflow:hidden; }
-    .table-head { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:17px 20px; border-bottom:1px solid var(--line); }
+    .table-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px 16px; padding:17px 20px; border-bottom:1px solid var(--line); }
     .table-head h2 { margin:0; font-size:16px; }
     .view-controls { display:flex; align-items:center; gap:5px; padding:4px; background:#f1f4f6; border-radius:9px; }
     .view-controls label { padding:7px 10px; border-radius:6px; color:#596778; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
@@ -40,6 +40,9 @@
     .view-controls label:has(input:checked) { color:#155c53; background:#fff; box-shadow:0 1px 3px rgba(26,43,59,.12); }
     .filter { width:min(300px,50%); padding:9px 11px; color:var(--ink); outline:none; border:1px solid #d7dfe8; border-radius:8px; }
     .filter:focus { border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-pale); }
+    .criteria { display:flex; flex:1 1 100%; gap:9px; }
+    .criteria select { min-width:150px; padding:9px 11px; color:var(--ink); background:#fff; outline:none; border:1px solid #d7dfe8; border-radius:8px; }
+    .criteria select:focus { border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-pale); }
     .table-wrap { overflow:auto; max-height:calc(100vh - 360px); min-height:200px; }
     table { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
     th { position:sticky; top:0; z-index:1; text-align:left; white-space:nowrap; color:#536173; background:#f8fafc; font-weight:700; }
@@ -67,7 +70,7 @@
     .modal-foot .button:disabled { cursor:not-allowed; opacity:.45; }
     .error { display:none; margin-top:16px; padding:10px 12px; color:#9d3030; background:#fff0f0; border-radius:8px; font-size:13px; }
     .error.show { display:block; }
-    @media (max-width:720px) { .top { padding:25px 20px 55px; } h1 { font-size:25px; } main { padding:0 15px; } .toolbar { align-items:stretch; flex-direction:column; } .actions { justify-content:flex-end; } .summary { grid-template-columns:1fr; gap:10px; } .drop-grid { grid-template-columns:1fr; } .table-head { align-items:stretch; flex-direction:column; } .view-controls { overflow-x:auto; } .filter { width:100%; } }
+    @media (max-width:720px) { .top { padding:25px 20px 55px; } h1 { font-size:25px; } main { padding:0 15px; } .toolbar { align-items:stretch; flex-direction:column; } .actions { justify-content:flex-end; } .summary { grid-template-columns:1fr; gap:10px; } .drop-grid { grid-template-columns:1fr; } .table-head { align-items:stretch; flex-direction:column; } .view-controls { overflow-x:auto; } .criteria { width:100%; flex-direction:column; } .criteria select, .filter { width:100%; } }
   </style>
 </head>
 <body>
@@ -84,7 +87,7 @@
       <div class="metric"><span class="value" id="unmatchedCount">—</span><span class="label">異常資料</span></div>
     </section>
     <section class="table-card">
-      <div class="table-head"><h2>合併核對明細</h2><div class="view-controls" role="radiogroup" aria-label="顯示範圍"><label><input type="radio" name="view" value="all" checked />所有資料</label><label><input type="radio" name="view" value="success" />成功交易</label><label><input type="radio" name="view" value="abnormal" />異常資料</label></div><input class="filter" id="filter" type="search" placeholder="搜尋訂單、發票、商品名稱…" disabled /></div>
+      <div class="table-head"><h2>合併核對明細</h2><div class="view-controls" role="radiogroup" aria-label="顯示範圍"><label><input type="radio" name="view" value="all" checked />所有資料</label><label><input type="radio" name="view" value="success" />成功交易</label><label><input type="radio" name="view" value="abnormal" />異常資料</label></div><div class="criteria" aria-label="欄位篩選"><select id="paymentStatusFilter" disabled><option value="__all__">付款狀態：全部</option></select><select id="settlementStatusFilter" disabled><option value="__all__">撥款狀態：全部</option></select><select id="changeFilter" disabled><option value="__all__">異動：全部</option></select><input class="filter" id="filter" type="search" placeholder="搜尋訂單、發票、商品名稱…" disabled /></div></div>
       <div class="table-wrap"><table id="resultTable"><thead><tr id="headers"></tr></thead><tbody id="results"><tr><td colspan="12" class="empty">請先選擇 OMG 與綠界的 CSV 檔案。</td></tr></tbody></table></div>
     </section>
   </main>
@@ -143,6 +146,13 @@
     function fail(message) { $('error').textContent=message; $('error').classList.add('show'); }
     // 綠界未配對時 ecpay 會是 undefined；一律回傳空字串，讓表格顯示「—」。
     function get(row, field) { return row?.[field] || ''; }
+    // OMG 報表的付款／撥款狀態有時會在前方帶入時間，核對時僅保留狀態文字。
+    function displayValue(row, source, field) {
+      const value=get(row[source], field);
+      if (source==='omg' && field==='付款狀態' && value.includes('已付款')) return '已付款';
+      if (source==='omg' && field==='撥款狀態' && value.includes('已撥款')) return '已撥款';
+      return value;
+    }
     function isSuccess(row) { return Boolean(row.omg && get(row.omg, '付款狀態').includes('已付款') && get(row.ecpay, '發票號碼') && get(row.ecpay, '異動') !== '已作廢'); }
     function outcome(row) {
       if (isSuccess(row)) return '成功交易';
@@ -160,23 +170,36 @@
       // 綠界有發票、但沒有對應 OMG 訂單的手開發票，也納入結果。
       const ecpayOnlyRows = state.ecpay.filter(ecpay => get(ecpay, '發票號碼') && !omgOrderNumbers.has(get(ecpay, '自訂編號'))).map(ecpay => ({ omg:null, ecpay }));
       state.rows = [...omgRows, ...ecpayOnlyRows];
+      setFilterOptions();
       render(); $('fileDialog').close();
+    }
+    function setFilterOptions() {
+      const configure = (id, label, values) => {
+        const select=$(id), selected=select.value;
+        const options=[...new Set(values)].sort((a,b)=>a.localeCompare(b, 'zh-Hant'));
+        select.innerHTML=`<option value="__all__">${label}：全部</option>` + options.map(value => `<option value="${escapeHtml(value)}">${escapeHtml(value || '未填寫')}</option>`).join('');
+        select.value=options.includes(selected) ? selected : '__all__'; select.disabled=false;
+      };
+      configure('paymentStatusFilter', '付款狀態', state.rows.map(row=>displayValue(row, 'omg', '付款狀態')));
+      configure('settlementStatusFilter', '撥款狀態', state.rows.map(row=>displayValue(row, 'omg', '撥款狀態')));
+      configure('changeFilter', '異動', state.rows.map(row=>get(row.ecpay, '異動')));
     }
     function render() {
       $('headers').innerHTML=outputColumns.map(([name])=>`<th>${name}</th>`).join('');
       const view=document.querySelector('input[name="view"]:checked').value;
-      const renderRows = state.rows.filter(row => { const q=$('filter').value.trim().toLowerCase(), success=isSuccess(row); const inView=view==='all' || (view==='success' ? success : !success); const searchable=outputColumns.some(([name,source]) => (source==='status' ? outcome(row) : get(row[source],name)).toLowerCase().includes(q)); return inView && (!q || searchable); });
-      $('results').innerHTML=renderRows.length ? renderRows.map(row => { const success=isSuccess(row), result=outcome(row); return `<tr>${outputColumns.map(([name,source]) => source==='status' ? `<td><span class="status ${success?'matched':'unmatched'}">${result}</span></td>` : `<td>${escapeHtml(get(row[source],name)) || '<span style="color:#a0abb7">—</span>'}</td>`).join('')}</tr>`; }).join('') : '<tr><td colspan="12" class="empty">沒有符合目前檢視或搜尋條件的資料。</td></tr>';
+      const payment=$('paymentStatusFilter').value, settlement=$('settlementStatusFilter').value, change=$('changeFilter').value;
+      const renderRows = state.rows.filter(row => { const q=$('filter').value.trim().toLowerCase(), success=isSuccess(row); const inView=view==='all' || (view==='success' ? success : !success); const matchesFields=(payment==='__all__'||displayValue(row,'omg','付款狀態')===payment) && (settlement==='__all__'||displayValue(row,'omg','撥款狀態')===settlement) && (change==='__all__'||get(row.ecpay,'異動')===change); const searchable=outputColumns.some(([name,source]) => (source==='status' ? outcome(row) : displayValue(row,source,name)).toLowerCase().includes(q)); return inView && matchesFields && (!q || searchable); });
+      $('results').innerHTML=renderRows.length ? renderRows.map(row => { const success=isSuccess(row), result=outcome(row); return `<tr>${outputColumns.map(([name,source]) => source==='status' ? `<td><span class="status ${success?'matched':'unmatched'}">${result}</span></td>` : `<td>${escapeHtml(displayValue(row,source,name)) || '<span style="color:#a0abb7">—</span>'}</td>`).join('')}</tr>`; }).join('') : '<tr><td colspan="12" class="empty">沒有符合目前檢視或搜尋條件的資料。</td></tr>';
       const successful=state.rows.filter(isSuccess).length;
       $('totalCount').textContent=state.rows.length.toLocaleString(); $('matchedCount').textContent=successful.toLocaleString(); $('unmatchedCount').textContent=(state.rows.length-successful).toLocaleString();
       $('filter').disabled=false; $('exportBtn').disabled=false;
     }
     function escapeHtml(v) { return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function csvCell(value) { return '"'+String(value ?? '').replace(/"/g,'""')+'"'; }
-    function exportResults() { const lines=[outputColumns.map(x=>csvCell(x[0])).join(',')]; state.rows.forEach(row=>lines.push(outputColumns.map(([name,source])=>csvCell(source==='status'?outcome(row):get(row[source],name))).join(','))); const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='OMG_綠界核對結果.csv';a.click();URL.revokeObjectURL(a.href); }
+    function exportResults() { const lines=[outputColumns.map(x=>csvCell(x[0])).join(',')]; state.rows.forEach(row=>lines.push(outputColumns.map(([name,source])=>csvCell(source==='status'?outcome(row):displayValue(row,source,name))).join(','))); const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='OMG_綠界核對結果.csv';a.click();URL.revokeObjectURL(a.href); }
     setupPicker('omg'); setupPicker('ecpay');
     $('chooseBtn').onclick=()=>{ $('error').classList.remove('show'); $('fileDialog').showModal(); };
-    $('filter').oninput=render; document.querySelectorAll('input[name="view"]').forEach(input=>input.onchange=render); $('exportBtn').onclick=exportResults;
+    $('filter').oninput=render; ['paymentStatusFilter','settlementStatusFilter','changeFilter'].forEach(id=>$(id).onchange=render); document.querySelectorAll('input[name="view"]').forEach(input=>input.onchange=render); $('exportBtn').onclick=exportResults;
     $('mergeBtn').onclick=async e=> { e.preventDefault(); $('error').classList.remove('show'); try { const [first,second]=await Promise.all([readFile($('omgFile').files[0]),readFile($('ecpayFile').files[0])]); const firstHeaders=Object.keys(first[0]||{}), secondHeaders=Object.keys(second[0]||{}); state.omg=firstHeaders.includes('廠商訂單編號') ? first : secondHeaders.includes('廠商訂單編號') ? second : null; state.ecpay=firstHeaders.includes('發票號碼') ? first : secondHeaders.includes('發票號碼') ? second : null; if (!state.omg || !state.ecpay) throw new Error('無法辨識檔案。OMG 檔需有「廠商訂單編號」，綠界檔需有「發票號碼」。'); if (!Object.keys(state.ecpay[0]||{}).includes('自訂編號')) throw new Error('綠界檔案缺少「自訂編號」，無法與 OMG 訂單編號比對。'); $('omgName').textContent=$('omgFile').files[0].name; $('ecpayName').textContent=$('ecpayFile').files[0].name; $('omgDot').classList.add('ready'); $('ecpayDot').classList.add('ready'); merge(); } catch(err) { fail(err.message); } };
     $('fileDialog').showModal();
   </script>
