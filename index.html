@@ -27,14 +27,19 @@
     .button { padding:10px 14px; color:#fff; background:var(--brand); }
     .button:hover { background:#11584f; }
     .button.secondary { color:#28554f; background:var(--brand-pale); }
-    .summary { display:grid; grid-template-columns:repeat(3,1fr); gap:15px; margin:22px 0; }
+    /* Summary grid adjusted to 4 columns */
+    .summary { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin:22px 0; }
     .metric { padding:18px 20px; background:#fff; border:1px solid var(--line); border-radius:14px; }
     .metric .value { display:block; margin-bottom:5px; font-size:27px; font-weight:800; letter-spacing:-.04em; }
     .metric .label { color:var(--muted); font-size:13px; }
+    
+    /* Perfect Match Banner */
+    .perfect-banner { display:none; margin: 0 0 22px; padding: 14px 20px; background: #e4f7ef; color: #15714f; border: 1px solid #26a879; border-radius: 12px; font-weight: 700; font-size: 15px; align-items: center; gap: 10px; }
+    
     .table-card { overflow:hidden; }
     .table-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px 16px; padding:17px 20px; border-bottom:1px solid var(--line); }
     .table-head h2 { margin:0; font-size:16px; }
-    .view-controls { display:flex; align-items:center; gap:5px; padding:4px; background:#f1f4f6; border-radius:9px; }
+    .view-controls { display:flex; align-items:center; gap:5px; padding:4px; background:#f1f4f6; border-radius:9px; overflow-x: auto; }
     .view-controls label { padding:7px 10px; border-radius:6px; color:#596778; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
     .view-controls input { position:absolute; opacity:0; pointer-events:none; }
     .view-controls label:has(input:checked) { color:#155c53; background:#fff; box-shadow:0 1px 3px rgba(26,43,59,.12); }
@@ -49,9 +54,13 @@
     th, td { padding:13px 14px; border-bottom:1px solid #edf0f4; vertical-align:top; }
     td { max-width:220px; line-height:1.45; }
     tbody tr:hover td { background:#fbfefd; }
+    
+    /* Status Styles */
     .status { display:inline-block; padding:3px 8px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
     .status.matched { color:#15714f; background:#e7f7ef; }
+    .status.manual { color:#0d5c75; background:#e0f2fe; } /* Blue for manual invoices */
     .status.unmatched { color:var(--warn); background:var(--warn-pale); }
+    
     .empty { padding:64px 20px; text-align:center; color:var(--muted); }
     dialog { width:min(780px,calc(100vw - 32px)); padding:0; color:var(--ink); border:0; border-radius:18px; box-shadow:0 25px 80px rgba(11,28,44,.35); }
     dialog::backdrop { background:rgba(15,28,43,.55); backdrop-filter:blur(3px); }
@@ -70,7 +79,7 @@
     .modal-foot .button:disabled { cursor:not-allowed; opacity:.45; }
     .error { display:none; margin-top:16px; padding:10px 12px; color:#9d3030; background:#fff0f0; border-radius:8px; font-size:13px; }
     .error.show { display:block; }
-    @media (max-width:720px) { .top { padding:25px 20px 55px; } h1 { font-size:25px; } main { padding:0 15px; } .toolbar { align-items:stretch; flex-direction:column; } .actions { justify-content:flex-end; } .summary { grid-template-columns:1fr; gap:10px; } .drop-grid { grid-template-columns:1fr; } .table-head { align-items:stretch; flex-direction:column; } .view-controls { overflow-x:auto; } .criteria { width:100%; flex-direction:column; } .criteria select, .filter { width:100%; } }
+    @media (max-width:720px) { .top { padding:25px 20px 55px; } h1 { font-size:25px; } main { padding:0 15px; } .toolbar { align-items:stretch; flex-direction:column; } .actions { justify-content:flex-end; } .summary { grid-template-columns:1fr 1fr; gap:10px; } .drop-grid { grid-template-columns:1fr; } .table-head { align-items:stretch; flex-direction:column; } .criteria { width:100%; flex-direction:column; } .criteria select, .filter { width:100%; } }
   </style>
 </head>
 <body>
@@ -81,13 +90,33 @@
       <div class="source-label"><span class="dot" id="ecpayDot"></span><div class="source-copy"><div class="source-name" id="ecpayName">尚未選擇 綠界檔案</div><div class="source-help">需包含「發票號碼」欄位</div></div></div>
       <div class="actions"><button class="button secondary" id="exportBtn" disabled>匯出核對結果</button><button class="button" id="chooseBtn">選擇檔案</button></div>
     </section>
+    
     <section class="summary" aria-label="核對摘要">
       <div class="metric"><span class="value" id="totalCount">—</span><span class="label">合併資料總筆數</span></div>
-      <div class="metric"><span class="value" id="matchedCount">—</span><span class="label">成功交易</span></div>
+      <div class="metric"><span class="value" id="matchedCount">—</span><span class="label">OMG成功交易</span></div>
+      <div class="metric"><span class="value" id="manualCount">—</span><span class="label">綠界手開發票</span></div>
       <div class="metric"><span class="value" id="unmatchedCount">—</span><span class="label">異常資料</span></div>
     </section>
+
+    <!-- Perfect Match Banner -->
+    <div id="perfectMatchBanner" class="perfect-banner">🎉 完美核對！OMG 金流與綠界發票全數媒合無誤。</div>
+
     <section class="table-card">
-      <div class="table-head"><h2>合併核對明細</h2><div class="view-controls" role="radiogroup" aria-label="顯示範圍"><label><input type="radio" name="view" value="all" checked />所有資料</label><label><input type="radio" name="view" value="success" />成功交易</label><label><input type="radio" name="view" value="abnormal" />異常資料</label></div><div class="criteria" aria-label="欄位篩選"><select id="paymentStatusFilter" disabled><option value="__all__">付款狀態：全部</option></select><select id="settlementStatusFilter" disabled><option value="__all__">撥款狀態：全部</option></select><select id="changeFilter" disabled><option value="__all__">異動：全部</option></select><input class="filter" id="filter" type="search" placeholder="搜尋訂單、發票、商品名稱…" disabled /></div></div>
+      <div class="table-head">
+        <h2>合併核對明細</h2>
+        <div class="view-controls" role="radiogroup" aria-label="顯示範圍">
+          <label><input type="radio" name="view" value="all" checked />所有資料</label>
+          <label><input type="radio" name="view" value="success" />OMG成功交易</label>
+          <label><input type="radio" name="view" value="manual" />綠界手開發票</label>
+          <label><input type="radio" name="view" value="abnormal" />異常資料</label>
+        </div>
+        <div class="criteria" aria-label="欄位篩選">
+          <select id="paymentStatusFilter" disabled><option value="__all__">付款狀態：全部</option></select>
+          <select id="settlementStatusFilter" disabled><option value="__all__">撥款狀態：全部</option></select>
+          <select id="changeFilter" disabled><option value="__all__">異動：全部</option></select>
+          <input class="filter" id="filter" type="search" placeholder="搜尋訂單、發票、商品名稱…" disabled />
+        </div>
+      </div>
       <div class="table-wrap"><table id="resultTable"><thead><tr id="headers"></tr></thead><tbody id="results"><tr><td colspan="12" class="empty">請先選擇 OMG 與綠界的 CSV 檔案。</td></tr></tbody></table></div>
     </section>
   </main>
@@ -144,30 +173,32 @@
     }
     function validateSelections() { $('mergeBtn').disabled = !($('omgFile').files[0] && $('ecpayFile').files[0]); }
     function fail(message) { $('error').textContent=message; $('error').classList.add('show'); }
-    // 綠界未配對時 ecpay 會是 undefined；一律回傳空字串，讓表格顯示「—」。
     function get(row, field) { return row?.[field] || ''; }
-    // OMG 報表的付款／撥款狀態有時會在前方帶入時間，核對時僅保留狀態文字。
     function displayValue(row, source, field) {
       const value=get(row[source], field);
       if (source==='omg' && field==='付款狀態' && value.includes('已付款')) return '已付款';
       if (source==='omg' && field==='撥款狀態' && value.includes('已撥款')) return '已撥款';
       return value;
     }
+    
+    // 狀態判斷邏輯
     function isSuccess(row) { return Boolean(row.omg && get(row.omg, '付款狀態').includes('已付款') && get(row.ecpay, '發票號碼') && get(row.ecpay, '異動') !== '已作廢'); }
+    function isManual(row) { return Boolean(!row.omg && get(row.ecpay, '發票號碼')); } // 綠界有發票但沒有OMG訂單
+    
     function outcome(row) {
-      if (isSuccess(row)) return '成功交易';
-      if (!row.omg) return '綠界有發票、OMG 無訂單';
+      if (isSuccess(row)) return 'OMG成功交易';
+      if (isManual(row)) return '綠界手開發票';
       if (!row.ecpay) return 'OMG 有訂單、未找到發票';
       if (!get(row.ecpay, '發票號碼')) return '綠界未找到發票';
       if (get(row.ecpay, '異動') === '已作廢') return '發票已作廢';
       return '付款未完成';
     }
+    
     function merge() {
       const invoiceByOrder = new Map();
       state.ecpay.forEach(row => { const key=get(row,'自訂編號'); if (key && !invoiceByOrder.has(key)) invoiceByOrder.set(key,row); });
       const omgOrderNumbers = new Set(state.omg.map(row => get(row, '廠商訂單編號')).filter(Boolean));
       const omgRows = state.omg.map(omg => ({ omg, ecpay:invoiceByOrder.get(get(omg,'廠商訂單編號')) }));
-      // 綠界有發票、但沒有對應 OMG 訂單的手開發票，也納入結果。
       const ecpayOnlyRows = state.ecpay.filter(ecpay => get(ecpay, '發票號碼') && !omgOrderNumbers.has(get(ecpay, '自訂編號'))).map(ecpay => ({ omg:null, ecpay }));
       state.rows = [...omgRows, ...ecpayOnlyRows];
       setFilterOptions();
@@ -188,10 +219,56 @@
       $('headers').innerHTML=outputColumns.map(([name])=>`<th>${name}</th>`).join('');
       const view=document.querySelector('input[name="view"]:checked').value;
       const payment=$('paymentStatusFilter').value, settlement=$('settlementStatusFilter').value, change=$('changeFilter').value;
-      const renderRows = state.rows.filter(row => { const q=$('filter').value.trim().toLowerCase(), success=isSuccess(row); const inView=view==='all' || (view==='success' ? success : !success); const matchesFields=(payment==='__all__'||displayValue(row,'omg','付款狀態')===payment) && (settlement==='__all__'||displayValue(row,'omg','撥款狀態')===settlement) && (change==='__all__'||get(row.ecpay,'異動')===change); const searchable=outputColumns.some(([name,source]) => (source==='status' ? outcome(row) : displayValue(row,source,name)).toLowerCase().includes(q)); return inView && matchesFields && (!q || searchable); });
-      $('results').innerHTML=renderRows.length ? renderRows.map(row => { const success=isSuccess(row), result=outcome(row); return `<tr>${outputColumns.map(([name,source]) => source==='status' ? `<td><span class="status ${success?'matched':'unmatched'}">${result}</span></td>` : `<td>${escapeHtml(displayValue(row,source,name)) || '<span style="color:#a0abb7">—</span>'}</td>`).join('')}</tr>`; }).join('') : '<tr><td colspan="12" class="empty">沒有符合目前檢視或搜尋條件的資料。</td></tr>';
-      const successful=state.rows.filter(isSuccess).length;
-      $('totalCount').textContent=state.rows.length.toLocaleString(); $('matchedCount').textContent=successful.toLocaleString(); $('unmatchedCount').textContent=(state.rows.length-successful).toLocaleString();
+      
+      const renderRows = state.rows.filter(row => { 
+        const q=$('filter').value.trim().toLowerCase();
+        const success = isSuccess(row);
+        const manual = isManual(row);
+        const abnormal = !success && !manual;
+        
+        const inView = view === 'all' || 
+                       (view === 'success' ? success : false) || 
+                       (view === 'manual' ? manual : false) || 
+                       (view === 'abnormal' ? abnormal : false);
+                       
+        const matchesFields=(payment==='__all__'||displayValue(row,'omg','付款狀態')===payment) && (settlement==='__all__'||displayValue(row,'omg','撥款狀態')===settlement) && (change==='__all__'||get(row.ecpay,'異動')===change); 
+        const searchable=outputColumns.some(([name,source]) => (source==='status' ? outcome(row) : displayValue(row,source,name)).toLowerCase().includes(q)); 
+        
+        return inView && matchesFields && (!q || searchable); 
+      });
+      
+      $('results').innerHTML=renderRows.length ? renderRows.map(row => { 
+        const success = isSuccess(row);
+        const manual = isManual(row);
+        const result = outcome(row);
+        
+        let statusClass = 'unmatched';
+        if (success) statusClass = 'matched';
+        else if (manual) statusClass = 'manual';
+        
+        return `<tr>${outputColumns.map(([name,source]) => source==='status' ? `<td><span class="status ${statusClass}">${result}</span></td>` : `<td>${escapeHtml(displayValue(row,source,name)) || '<span style="color:#a0abb7">—</span>'}</td>`).join('')}</tr>`; 
+      }).join('') : '<tr><td colspan="12" class="empty">沒有符合目前檢視或搜尋條件的資料。</td></tr>';
+      
+      const successful = state.rows.filter(isSuccess).length;
+      const manualCount = state.rows.filter(isManual).length;
+      const abnormalCount = state.rows.length - successful - manualCount;
+      
+      $('totalCount').textContent = state.rows.length.toLocaleString(); 
+      $('matchedCount').textContent = successful.toLocaleString(); 
+      $('manualCount').textContent = manualCount.toLocaleString(); 
+      $('unmatchedCount').textContent = abnormalCount.toLocaleString();
+      
+      // 計算 omg已付款的筆數 與 綠界總數(排除已作廢)
+      const omgPaidCount = state.rows.filter(row => row.omg && get(row.omg, '付款狀態').includes('已付款')).length;
+      const ecpayValidCount = state.rows.filter(row => row.ecpay && get(row.ecpay, '發票號碼') && get(row.ecpay, '異動') !== '已作廢').length;
+
+      // 控制完美核對橫幅的顯示：只要 omg已付款的筆數 與 綠界總數(排除已作廢) 相同且大於0即可顯示
+      if (state.rows.length > 0 && omgPaidCount > 0 && omgPaidCount === ecpayValidCount) {
+        $('perfectMatchBanner').style.display = 'flex';
+      } else {
+        $('perfectMatchBanner').style.display = 'none';
+      }
+      
       $('filter').disabled=false; $('exportBtn').disabled=false;
     }
     function escapeHtml(v) { return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
