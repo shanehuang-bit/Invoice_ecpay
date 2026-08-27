@@ -58,7 +58,7 @@
     /* Status Styles */
     .status { display:inline-block; padding:3px 8px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
     .status.matched { color:#15714f; background:#e7f7ef; }
-    .status.manual { color:#0d5c75; background:#e0f2fe; } /* Blue for manual invoices */
+    .status.manual { color:#0d5c75; background:#e0f2fe; }
     .status.unmatched { color:var(--warn); background:var(--warn-pale); }
     
     .empty { padding:64px 20px; text-align:center; color:var(--muted); }
@@ -79,6 +79,17 @@
     .modal-foot .button:disabled { cursor:not-allowed; opacity:.45; }
     .error { display:none; margin-top:16px; padding:10px 12px; color:#9d3030; background:#fff0f0; border-radius:8px; font-size:13px; }
     .error.show { display:block; }
+    
+    /* Info Dialog Styles */
+    .info-content { margin: 20px 0; font-size: 14px; line-height: 1.6; }
+    .info-content h3 { font-size: 15px; margin: 18px 0 6px; color: #123f47; }
+    .info-content p { margin: 0 0 10px; color: #4a5568; }
+    .info-content ul { margin: 0; padding-left: 20px; color: #4a5568; }
+    .note-box { margin-top: 22px; padding: 15px 18px; background: var(--warn-pale); border-left: 4px solid var(--warn); border-radius: 8px; font-size: 13px; color: #7b4a05; }
+    .note-box strong { color: var(--warn); display: block; margin-bottom: 6px; font-size: 14px; }
+    .note-box ul { padding-left: 18px; margin: 0; }
+    .note-box li { margin-bottom: 4px; }
+    
     @media (max-width:720px) { .top { padding:25px 20px 55px; } h1 { font-size:25px; } main { padding:0 15px; } .toolbar { align-items:stretch; flex-direction:column; } .actions { justify-content:flex-end; } .summary { grid-template-columns:1fr 1fr; gap:10px; } .drop-grid { grid-template-columns:1fr; } .table-head { align-items:stretch; flex-direction:column; } .criteria { width:100%; flex-direction:column; } .criteria select, .filter { width:100%; } }
   </style>
 </head>
@@ -117,20 +128,57 @@
           <input class="filter" id="filter" type="search" placeholder="搜尋訂單、發票、商品名稱…" disabled />
         </div>
       </div>
-      <div class="table-wrap"><table id="resultTable"><thead><tr id="headers"></tr></thead><tbody id="results"><tr><td colspan="12" class="empty">請先選擇 OMG 與綠界的 CSV 檔案。</td></tr></tbody></table></div>
+      <div class="table-wrap"><table id="resultTable"><thead><tr id="headers"></tr></thead><tbody id="results"><tr><td colspan="12" class="empty">請先選擇 OMG 與綠界的檔案。</td></tr></tbody></table></div>
     </section>
   </main>
+
+  <!-- 系統核對邏輯說明 Dialog -->
+  <dialog id="infoDialog">
+    <div class="modal">
+      <h2>💡 系統核對邏輯說明</h2>
+      <div class="info-content">
+        <h3>1. 檔案區間與格式要求</h3>
+        <p>OMG 與綠界報表建議為<strong>相同時間區間</strong>，檔案格式建議使用 <strong>CSV</strong>。</p>
+        
+        <h3>2. OMG 成功交易</h3>
+        <p>一筆資料必須同時滿足：<strong>有OMG訂單</strong>、<strong>狀態為已付款</strong>、<strong>有綠界發票號碼</strong>、且<strong>發票未作廢</strong>。</p>
+        
+        <h3>3. 綠界手開發票</h3>
+        <p>綠界報表中有發票號碼，但無法在 OMG 報表中找到對應訂單。</p>
+        
+        <h3>4. 異常資料</h3>
+        <p>包含以下狀況：OMG有訂單但未找到發票、綠界未找到發票號碼、發票已作廢、付款未完成。</p>
+
+        <h3>5. 完美核對條件</h3>
+        <p>當<strong>「OMG 已付款的總筆數」</strong>等於<strong>「綠界發票總數（排除已作廢）」</strong>時，即代表應開發票數量與有效發票數量完全吻合，系統會顯示「🎉 完美核對！」提示橫幅。</p>
+
+        <div class="note-box">
+          <strong>⚠️ 備註說明</strong>
+          <ul>
+            <li><strong>手開補發票：</strong>若綠界手開補 OMG 發票，<strong>自訂編號需填入廠商訂單編號</strong>，系統才能順利配對為成功交易。</li>
+            <li><strong>單邊手開單：</strong>若綠界有成立的 B2C 手開單，但 OMG 沒有，可能是測試單據，建議查看折讓等其他單據確認。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="button" id="startBtn">我知道了，開始匯入</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 原有的選擇檔案 Dialog -->
   <dialog id="fileDialog">
     <form class="modal" method="dialog">
       <h2>匯入核對檔案</h2><p>請各選一份 CSV 或 Excel 檔案。系統會依欄位自動辨識來源；比對鍵為 OMG「廠商訂單編號」＝ 綠界「自訂編號」。</p>
       <div class="drop-grid">
-        <label class="drop-zone" id="omgZone"><input id="omgFile" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /><span class="file-kind">OMG 金流報表</span><span class="drop-title">選擇 OMG 檔案</span><span class="drop-note">CSV 或 Excel；包含「廠商訂單編號」</span><span class="file-name" id="omgFileName"></span></label>
-        <label class="drop-zone" id="ecpayZone"><input id="ecpayFile" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /><span class="file-kind">綠界發票報表</span><span class="drop-title">選擇 綠界檔案</span><span class="drop-note">CSV 或 Excel；包含「發票號碼」與「自訂編號」</span><span class="file-name" id="ecpayFileName"></span></label>
+        <label class="drop-zone" id="omgZone"><input id="omgFile" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /><span class="file-kind">OMG 金流報表</span><span class="drop-title">選擇 OMG 檔案</span><span class="drop-note">建議 CSV 格式；包含「廠商訂單編號」</span><span class="file-name" id="omgFileName"></span></label>
+        <label class="drop-zone" id="ecpayZone"><input id="ecpayFile" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /><span class="file-kind">綠界發票報表</span><span class="drop-title">選擇 綠界檔案</span><span class="drop-note">建議 CSV 格式；包含「發票號碼」與「自訂編號」</span><span class="file-name" id="ecpayFileName"></span></label>
       </div>
       <div class="error" id="error"></div>
       <div class="modal-foot"><button class="button secondary" value="cancel">取消</button><button class="button" id="mergeBtn" value="default" disabled>開始核對</button></div>
     </form>
   </dialog>
+
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
     const outputColumns = [
@@ -181,9 +229,8 @@
       return value;
     }
     
-    // 狀態判斷邏輯
     function isSuccess(row) { return Boolean(row.omg && get(row.omg, '付款狀態').includes('已付款') && get(row.ecpay, '發票號碼') && get(row.ecpay, '異動') !== '已作廢'); }
-    function isManual(row) { return Boolean(!row.omg && get(row.ecpay, '發票號碼')); } // 綠界有發票但沒有OMG訂單
+    function isManual(row) { return Boolean(!row.omg && get(row.ecpay, '發票號碼')); } 
     
     function outcome(row) {
       if (isSuccess(row)) return 'OMG成功交易';
@@ -258,11 +305,9 @@
       $('manualCount').textContent = manualCount.toLocaleString(); 
       $('unmatchedCount').textContent = abnormalCount.toLocaleString();
       
-      // 計算 omg已付款的筆數 與 綠界總數(排除已作廢)
       const omgPaidCount = state.rows.filter(row => row.omg && get(row.omg, '付款狀態').includes('已付款')).length;
       const ecpayValidCount = state.rows.filter(row => row.ecpay && get(row.ecpay, '發票號碼') && get(row.ecpay, '異動') !== '已作廢').length;
 
-      // 控制完美核對橫幅的顯示：只要 omg已付款的筆數 與 綠界總數(排除已作廢) 相同且大於0即可顯示
       if (state.rows.length > 0 && omgPaidCount > 0 && omgPaidCount === ecpayValidCount) {
         $('perfectMatchBanner').style.display = 'flex';
       } else {
@@ -275,10 +320,15 @@
     function csvCell(value) { return '"'+String(value ?? '').replace(/"/g,'""')+'"'; }
     function exportResults() { const lines=[outputColumns.map(x=>csvCell(x[0])).join(',')]; state.rows.forEach(row=>lines.push(outputColumns.map(([name,source])=>csvCell(source==='status'?outcome(row):displayValue(row,source,name))).join(','))); const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='OMG_綠界核對結果.csv';a.click();URL.revokeObjectURL(a.href); }
     setupPicker('omg'); setupPicker('ecpay');
+    
+    // 按鈕與 Dialog 邏輯設定
+    $('startBtn').onclick = () => { $('infoDialog').close(); $('fileDialog').showModal(); };
     $('chooseBtn').onclick=()=>{ $('error').classList.remove('show'); $('fileDialog').showModal(); };
     $('filter').oninput=render; ['paymentStatusFilter','settlementStatusFilter','changeFilter'].forEach(id=>$(id).onchange=render); document.querySelectorAll('input[name="view"]').forEach(input=>input.onchange=render); $('exportBtn').onclick=exportResults;
     $('mergeBtn').onclick=async e=> { e.preventDefault(); $('error').classList.remove('show'); try { const [first,second]=await Promise.all([readFile($('omgFile').files[0]),readFile($('ecpayFile').files[0])]); const firstHeaders=Object.keys(first[0]||{}), secondHeaders=Object.keys(second[0]||{}); state.omg=firstHeaders.includes('廠商訂單編號') ? first : secondHeaders.includes('廠商訂單編號') ? second : null; state.ecpay=firstHeaders.includes('發票號碼') ? first : secondHeaders.includes('發票號碼') ? second : null; if (!state.omg || !state.ecpay) throw new Error('無法辨識檔案。OMG 檔需有「廠商訂單編號」，綠界檔需有「發票號碼」。'); if (!Object.keys(state.ecpay[0]||{}).includes('自訂編號')) throw new Error('綠界檔案缺少「自訂編號」，無法與 OMG 訂單編號比對。'); $('omgName').textContent=$('omgFile').files[0].name; $('ecpayName').textContent=$('ecpayFile').files[0].name; $('omgDot').classList.add('ready'); $('ecpayDot').classList.add('ready'); merge(); } catch(err) { fail(err.message); } };
-    $('fileDialog').showModal();
+    
+    // 網頁一開啟時，優先顯示系統核對邏輯說明
+    $('infoDialog').showModal();
   </script>
 </body>
 </html>
