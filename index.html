@@ -9,11 +9,16 @@
     * { box-sizing:border-box; }
     body { margin:0; color:var(--ink); background:var(--bg); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", sans-serif; }
     button, input { font:inherit; }
-    .top { min-height:164px; padding:34px max(28px,calc((100% - 1320px)/2)); color:#fff; background:linear-gradient(120deg,#123f47,#1d786d); }
+    
+    .top { position: relative; min-height:164px; padding:34px max(28px,calc((100% - 1320px)/2)); color:#fff; background:linear-gradient(120deg,#123f47,#1d786d); }
+    .last-update { position: absolute; top: 34px; right: max(28px,calc((100% - 1320px)/2)); font-size: 13px; opacity: 0.8; letter-spacing: 0.05em; }
+    
     .eyebrow { margin:0 0 9px; font-size:13px; font-weight:700; letter-spacing:.11em; opacity:.78; }
     h1 { margin:0; font-size:30px; letter-spacing:-.03em; }
     .subtitle { margin:10px 0 0; color:#d9f0ed; font-size:15px; }
-    main { max-width:1320px; margin:-35px auto 48px; padding:0 28px; }
+    
+    main { position: relative; z-index: 1; max-width:1320px; margin:-35px auto 48px; padding:0 28px; }
+    
     .toolbar, .table-card { background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow); border-radius:16px; }
     .toolbar { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:17px 20px; }
     .source-label { display:flex; gap:11px; align-items:center; min-width:0; }
@@ -27,13 +32,50 @@
     .button { padding:10px 14px; color:#fff; background:var(--brand); }
     .button:hover { background:#11584f; }
     .button.secondary { color:#28554f; background:var(--brand-pale); }
-    /* Summary grid adjusted to 4 columns */
-    .summary { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin:22px 0; }
+    
+    .summary { display:grid; grid-template-columns:repeat(5,1fr); gap:15px; margin:22px 0; }
     .metric { padding:18px 20px; background:#fff; border:1px solid var(--line); border-radius:14px; }
     .metric .value { display:block; margin-bottom:5px; font-size:27px; font-weight:800; letter-spacing:-.04em; }
     .metric .label { color:var(--muted); font-size:13px; }
     
-    /* Perfect Match Banner */
+    .amount-compare { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #d7dfe8; font-size: 13px; line-height: 1.6; color: var(--muted); }
+    .amount-compare div { display: flex; justify-content: space-between; align-items: center; }
+    .amount-compare span.amt-val { font-weight: 700; color: #123f47; transition: color 0.3s; }
+    
+    .tooltip-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 15px; height: 15px; background: #94a3b8; color: #fff;
+      font-size: 11px; font-weight: bold; border-radius: 50%; cursor: help;
+      position: relative; margin-left: 4px; flex-shrink: 0;
+    }
+    .tooltip-icon:hover { background: #64748b; }
+    
+    /* 預設提示框 (往上浮出) */
+    .tooltip-icon::after {
+      content: attr(data-tooltip);
+      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+      margin-bottom: 8px; padding: 6px 10px; background: #1e293b; color: #fff;
+      font-size: 12px; font-weight: normal; white-space: nowrap; border-radius: 6px;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10;
+    }
+    .tooltip-icon::before {
+      content: '';
+      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+      margin-bottom: 2px; border: 4px solid transparent; border-top-color: #1e293b;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10;
+    }
+    
+    /* 表格標題專用提示框 (往下浮出，避免被捲動區域切斷) */
+    .tooltip-icon.down::after {
+      bottom: auto; top: 100%; margin-bottom: 0; margin-top: 8px;
+    }
+    .tooltip-icon.down::before {
+      bottom: auto; top: 100%; margin-bottom: 0; margin-top: 2px;
+      border-top-color: transparent; border-bottom-color: #1e293b;
+    }
+    
+    .tooltip-icon:hover::after, .tooltip-icon:hover::before { opacity: 1; }
+
     .perfect-banner { display:none; margin: 0 0 22px; padding: 14px 20px; background: #e4f7ef; color: #15714f; border: 1px solid #26a879; border-radius: 12px; font-weight: 700; font-size: 15px; align-items: center; gap: 10px; }
     
     .table-card { overflow:hidden; }
@@ -48,17 +90,47 @@
     .criteria { display:flex; flex:1 1 100%; gap:9px; }
     .criteria select { min-width:150px; padding:9px 11px; color:var(--ink); background:#fff; outline:none; border:1px solid #d7dfe8; border-radius:8px; }
     .criteria select:focus { border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-pale); }
-    .table-wrap { overflow:auto; max-height:calc(100vh - 360px); min-height:200px; }
-    table { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; }
-    th { position:sticky; top:0; z-index:1; text-align:left; white-space:nowrap; color:#536173; background:#f8fafc; font-weight:700; }
-    th, td { padding:13px 14px; border-bottom:1px solid #edf0f4; vertical-align:top; }
-    td { max-width:220px; line-height:1.45; }
-    tbody tr:hover td { background:#fbfefd; }
     
-    /* Status Styles */
+    .table-wrap { 
+      overflow: auto; 
+      max-height: calc(100vh - 360px); 
+      min-height: 200px; 
+      padding-bottom: 10px;
+    }
+    .table-wrap::-webkit-scrollbar { width: 8px; height: 8px; }
+    .table-wrap::-webkit-scrollbar-track { background: #f1f4f6; border-radius: 4px; }
+    .table-wrap::-webkit-scrollbar-thumb { background: #c1c8d1; border-radius: 4px; }
+    .table-wrap::-webkit-scrollbar-thumb:hover { background: #a0aab5; }
+
+    /* ========== 恢復原本的捲動表格設計，並強制不換行 ========== */
+    table { 
+      width: 100%; 
+      min-width: max-content; /* 允許表格自然撐開產生水平捲軸 */
+      border-collapse: separate; 
+      border-spacing: 0; 
+      font-size: 13px; /* 恢復原本大小 */
+    }
+    
+    th { 
+      position: sticky; top: 0; z-index: 1; text-align: left; 
+      white-space: nowrap; /* 強制標題不換行 */
+      color: #536173; background: #f8fafc; font-weight: 700; 
+    }
+    
+    th, td { 
+      padding: 13px 14px; /* 恢復原本舒適的內距 */
+      border-bottom: 1px solid #edf0f4; 
+      vertical-align: middle; 
+      white-space: nowrap; /* 強制所有內容都不換行 */
+    }
+    
+    tbody tr:hover td { background:#fbfefd; }
+    /* ========================================== */
+
     .status { display:inline-block; padding:3px 8px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
     .status.matched { color:#15714f; background:#e7f7ef; }
     .status.manual { color:#0d5c75; background:#e0f2fe; }
+    .status.void { color:#475569; background:#e2e8f0; }
     .status.unmatched { color:var(--warn); background:var(--warn-pale); }
     
     .empty { padding:64px 20px; text-align:center; color:var(--muted); }
@@ -80,7 +152,6 @@
     .error { display:none; margin-top:16px; padding:10px 12px; color:#9d3030; background:#fff0f0; border-radius:8px; font-size:13px; }
     .error.show { display:block; }
     
-    /* Info Dialog Styles */
     .info-content { margin: 20px 0; font-size: 14px; line-height: 1.6; }
     .info-content h3 { font-size: 15px; margin: 18px 0 6px; color: #123f47; }
     .info-content p { margin: 0 0 10px; color: #4a5568; }
@@ -90,11 +161,20 @@
     .note-box ul { padding-left: 18px; margin: 0; }
     .note-box li { margin-bottom: 4px; }
     
-    @media (max-width:720px) { .top { padding:25px 20px 55px; } h1 { font-size:25px; } main { padding:0 15px; } .toolbar { align-items:stretch; flex-direction:column; } .actions { justify-content:flex-end; } .summary { grid-template-columns:1fr 1fr; gap:10px; } .drop-grid { grid-template-columns:1fr; } .table-head { align-items:stretch; flex-direction:column; } .criteria { width:100%; flex-direction:column; } .criteria select, .filter { width:100%; } }
+    @media (max-width:720px) { 
+      .top { padding:25px 20px 55px; } 
+      .last-update { top: 15px; right: 20px; font-size: 12px; }
+      h1 { font-size:25px; } main { padding:0 15px; } .toolbar { align-items:stretch; flex-direction:column; } .actions { justify-content:flex-end; } .summary { grid-template-columns:1fr 1fr; gap:10px; } .drop-grid { grid-template-columns:1fr; } .table-head { align-items:stretch; flex-direction:column; } .criteria { width:100%; flex-direction:column; } .criteria select, .filter { width:100%; } 
+    }
   </style>
 </head>
 <body>
-  <header class="top"><p class="eyebrow">ORDER &amp; INVOICE RECONCILIATION</p><h1>OMG × 綠界核對中心</h1><p class="subtitle">以「廠商訂單編號」與綠界「自訂編號」自動交叉比對，完整保留雙方未配對資料。</p></header>
+  <header class="top">
+    <div class="last-update">最後更新日：2026/10/06</div>
+    <p class="eyebrow">ORDER &amp; INVOICE RECONCILIATION</p>
+    <h1>OMG × 綠界B2C核對中心</h1>
+    <p class="subtitle">以「廠商訂單編號」與綠界「自訂編號」自動交叉比對，完整保留雙方未配對資料。</p>
+  </header>
   <main>
     <section class="toolbar" aria-label="資料來源">
       <div class="source-label"><span class="dot" id="omgDot"></span><div class="source-copy"><div class="source-name" id="omgName">尚未選擇 OMG 檔案</div><div class="source-help">需包含「廠商訂單編號」欄位</div></div></div>
@@ -103,13 +183,56 @@
     </section>
     
     <section class="summary" aria-label="核對摘要">
-      <div class="metric"><span class="value" id="totalCount">—</span><span class="label">合併資料總筆數</span></div>
-      <div class="metric"><span class="value" id="matchedCount">—</span><span class="label">OMG成功交易</span></div>
-      <div class="metric"><span class="value" id="manualCount">—</span><span class="label">綠界手開發票</span></div>
-      <div class="metric"><span class="value" id="unmatchedCount">—</span><span class="label">異常資料</span></div>
+      <div class="metric">
+        <span class="value" id="totalCount">—</span>
+        <span class="label" style="display:flex; align-items:center;">
+          合併資料總筆數
+          <span class="tooltip-icon" data-tooltip="OMG所有訂單，加上綠界無對應訂單的發票總和">!</span>
+        </span>
+        <div class="amount-compare">
+          <div>
+            <span>OMG交易總額:</span> 
+            <span id="omgTotalAmount" class="amt-val">—</span>
+          </div>
+          <div>
+            <span style="display:flex; align-items:center;">
+              綠界發票總額
+              <span class="tooltip-icon" data-tooltip="兩項皆為成功交易總額，並已扣除作廢發票金額">!</span>:
+            </span> 
+            <span id="ecpayTotalAmount" class="amt-val">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="metric">
+        <span class="value" id="matchedCount">—</span>
+        <span class="label" style="display:flex; align-items:center;">
+          OMG成功交易
+          <span class="tooltip-icon" data-tooltip="OMG狀態為「已付款」，且有對應到未作廢的綠界發票">!</span>
+        </span>
+      </div>
+      <div class="metric">
+        <span class="value" id="voidCount">—</span>
+        <span class="label" style="display:flex; align-items:center;">
+          綠界作廢發票
+          <span class="tooltip-icon" data-tooltip="綠界報表中「異動」欄位為「已作廢」的資料">!</span>
+        </span>
+      </div>
+      <div class="metric">
+        <span class="value" id="manualCount">—</span>
+        <span class="label" style="display:flex; align-items:center;">
+          綠界手開發票
+          <span class="tooltip-icon" data-tooltip="綠界有開立未作廢發票，但找不到對應的OMG訂單">!</span>
+        </span>
+      </div>
+      <div class="metric">
+        <span class="value" id="unmatchedCount">—</span>
+        <span class="label" style="display:flex; align-items:center;">
+          異常資料
+          <span class="tooltip-icon" data-tooltip="OMG有訂單但無發票、未完成付款，或其他無法成功配對的狀況">!</span>
+        </span>
+      </div>
     </section>
 
-    <!-- Perfect Match Banner -->
     <div id="perfectMatchBanner" class="perfect-banner">🎉 完美核對！OMG 金流與綠界發票全數媒合無誤。</div>
 
     <section class="table-card">
@@ -132,7 +255,6 @@
     </section>
   </main>
 
-  <!-- 系統核對邏輯說明 Dialog -->
   <dialog id="infoDialog">
     <div class="modal">
       <h2>💡 系統核對邏輯說明</h2>
@@ -166,13 +288,12 @@
     </div>
   </dialog>
 
-  <!-- 原有的選擇檔案 Dialog -->
   <dialog id="fileDialog">
     <form class="modal" method="dialog">
       <h2>匯入核對檔案</h2><p>請各選一份 CSV 或 Excel 檔案。系統會依欄位自動辨識來源；比對鍵為 OMG「廠商訂單編號」＝ 綠界「自訂編號」。</p>
       <div class="drop-grid">
-        <label class="drop-zone" id="omgZone"><input id="omgFile" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /><span class="file-kind">OMG 金流報表</span><span class="drop-title">選擇 OMG 檔案</span><span class="drop-note">建議 CSV 格式；包含「廠商訂單編號」</span><span class="file-name" id="omgFileName"></span></label>
-        <label class="drop-zone" id="ecpayZone"><input id="ecpayFile" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /><span class="file-kind">綠界發票報表</span><span class="drop-title">選擇 綠界檔案</span><span class="drop-note">建議 CSV 格式；包含「發票號碼」與「自訂編號」</span><span class="file-name" id="ecpayFileName"></span></label>
+        <label class="drop-zone" id="omgZone"><input id="omgFile" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /><span class="file-kind">OMG 金流報表</span><span class="drop-title">選擇 OMG 檔案</span><span class="drop-note">建議 CSV 格式；包含「廠商訂單編號」與「交易金額」</span><span class="file-name" id="omgFileName"></span></label>
+        <label class="drop-zone" id="ecpayZone"><input id="ecpayFile" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" /><span class="file-kind">綠界發票報表</span><span class="drop-title">選擇 綠界檔案</span><span class="drop-note">建議 CSV 格式；包含「發票號碼」、「自訂編號」與「發票金額」</span><span class="file-name" id="ecpayFileName"></span></label>
       </div>
       <div class="error" id="error"></div>
       <div class="modal-foot"><button class="button secondary" value="cancel">取消</button><button class="button" id="mergeBtn" value="default" disabled>開始核對</button></div>
@@ -181,12 +302,19 @@
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
+    // 將「核對結果」移到最前面
     const outputColumns = [
-      ['訂單日期', 'omg'], ['廠商訂單編號', 'omg'], ['歐買尬金流訂單編號', 'omg'], ['付款方式', 'omg'], ['付款狀態', 'omg'], ['交易金額', 'omg'], ['撥款狀態', 'omg'], ['商品名稱', 'omg'], ['發票號碼', 'ecpay'], ['上傳狀態', 'ecpay'], ['異動', 'ecpay'], ['核對結果', 'status']
+      ['核對結果', 'status'], ['訂單日期', 'omg'], ['廠商訂單編號', 'omg'], ['歐買尬金流訂單編號', 'omg'], ['付款方式', 'omg'], ['付款狀態', 'omg'], ['交易金額', 'omg'], ['撥款狀態', 'omg'], ['商品名稱', 'omg'], ['發票號碼', 'ecpay'], ['上傳狀態', 'ecpay'], ['異動', 'ecpay'], ['發票金額', 'ecpayAmt']
     ];
     const state = { omg:null, ecpay:null, rows:[] };
     const $ = id => document.getElementById(id);
     const clean = value => String(value ?? '').replace(/^\uFEFF/, '').replace(/^\s*=\s*/, '').trim();
+    
+    function getEcpayAmount(ecpayRow) {
+      if (!ecpayRow) return '';
+      return ecpayRow['發票金額'] || ecpayRow['總金額'] || ecpayRow['發票金額(含稅)'] || ecpayRow['金額'] || '';
+    }
+
     function parseCsv(text) {
       const rows = []; let row = [], field = '', quoted = false;
       text = text.replace(/^\uFEFF/, '');
@@ -223,21 +351,23 @@
     function fail(message) { $('error').textContent=message; $('error').classList.add('show'); }
     function get(row, field) { return row?.[field] || ''; }
     function displayValue(row, source, field) {
-      const value=get(row[source], field);
+      if (source === 'ecpayAmt') return getEcpayAmount(row.ecpay);
+      const value = get(row[source], field);
       if (source==='omg' && field==='付款狀態' && value.includes('已付款')) return '已付款';
       if (source==='omg' && field==='撥款狀態' && value.includes('已撥款')) return '已撥款';
       return value;
     }
     
-    function isSuccess(row) { return Boolean(row.omg && get(row.omg, '付款狀態').includes('已付款') && get(row.ecpay, '發票號碼') && get(row.ecpay, '異動') !== '已作廢'); }
-    function isManual(row) { return Boolean(!row.omg && get(row.ecpay, '發票號碼')); } 
+    function isVoid(row) { return Boolean(get(row.ecpay, '異動') === '已作廢'); }
+    function isSuccess(row) { return Boolean(row.omg && get(row.omg, '付款狀態').includes('已付款') && get(row.ecpay, '發票號碼') && !isVoid(row)); }
+    function isManual(row) { return Boolean(!row.omg && get(row.ecpay, '發票號碼') && !isVoid(row)); } 
     
     function outcome(row) {
+      if (isVoid(row)) return '發票已作廢';
       if (isSuccess(row)) return 'OMG成功交易';
       if (isManual(row)) return '綠界手開發票';
       if (!row.ecpay) return 'OMG 有訂單、未找到發票';
       if (!get(row.ecpay, '發票號碼')) return '綠界未找到發票';
-      if (get(row.ecpay, '異動') === '已作廢') return '發票已作廢';
       return '付款未完成';
     }
     
@@ -263,7 +393,20 @@
       configure('changeFilter', '異動', state.rows.map(row=>get(row.ecpay, '異動')));
     }
     function render() {
-      $('headers').innerHTML=outputColumns.map(([name])=>`<th>${name}</th>`).join('');
+      $('headers').innerHTML = outputColumns.map(([name, source]) => {
+        let tip = '';
+        if (source === 'omg') tip = '來源：OMG試算表';
+        else if (source === 'ecpay' || source === 'ecpayAmt') tip = '來源：綠界試算表';
+        else if (source === 'status') tip = '系統自動比對結果';
+        
+        return `<th>
+          <div style="display:flex; align-items:center; gap:2px;">
+            ${name}
+            <span class="tooltip-icon down" data-tooltip="${tip}">!</span>
+          </div>
+        </th>`;
+      }).join('');
+      
       const view=document.querySelector('input[name="view"]:checked').value;
       const payment=$('paymentStatusFilter').value, settlement=$('settlementStatusFilter').value, change=$('changeFilter').value;
       
@@ -271,7 +414,8 @@
         const q=$('filter').value.trim().toLowerCase();
         const success = isSuccess(row);
         const manual = isManual(row);
-        const abnormal = !success && !manual;
+        const voidData = isVoid(row);
+        const abnormal = !success && !manual && !voidData;
         
         const inView = view === 'all' || 
                        (view === 'success' ? success : false) || 
@@ -283,30 +427,57 @@
         
         return inView && matchesFields && (!q || searchable); 
       });
+
+      let omgAmtSum = 0;
+      let ecpayAmtSum = 0;
+      state.rows.forEach(row => {
+        if (row.omg && isSuccess(row)) omgAmtSum += parseFloat(get(row.omg, '交易金額').replace(/,/g, '')) || 0;
+        if (row.ecpay && !isVoid(row)) {
+          const ecpayAmtStr = getEcpayAmount(row.ecpay);
+          ecpayAmtSum += parseFloat(ecpayAmtStr.replace(/,/g, '')) || 0;
+        }
+      });
       
       $('results').innerHTML=renderRows.length ? renderRows.map(row => { 
         const success = isSuccess(row);
         const manual = isManual(row);
+        const voidData = isVoid(row);
         const result = outcome(row);
         
         let statusClass = 'unmatched';
         if (success) statusClass = 'matched';
         else if (manual) statusClass = 'manual';
+        else if (voidData) statusClass = 'void';
         
-        return `<tr>${outputColumns.map(([name,source]) => source==='status' ? `<td><span class="status ${statusClass}">${result}</span></td>` : `<td>${escapeHtml(displayValue(row,source,name)) || '<span style="color:#a0abb7">—</span>'}</td>`).join('')}</tr>`; 
+        return `<tr>${outputColumns.map(([name,source]) => {
+          return source==='status' 
+            ? `<td><span class="status ${statusClass}">${result}</span></td>` 
+            : `<td>${escapeHtml(displayValue(row,source,name)) || '<span style="color:#a0abb7">—</span>'}</td>`;
+        }).join('')}</tr>`; 
       }).join('') : '<tr><td colspan="12" class="empty">沒有符合目前檢視或搜尋條件的資料。</td></tr>';
       
+      const voidCount = state.rows.filter(isVoid).length;
       const successful = state.rows.filter(isSuccess).length;
       const manualCount = state.rows.filter(isManual).length;
-      const abnormalCount = state.rows.length - successful - manualCount;
+      const abnormalCount = state.rows.length - successful - manualCount - voidCount;
       
       $('totalCount').textContent = state.rows.length.toLocaleString(); 
-      $('matchedCount').textContent = successful.toLocaleString(); 
-      $('manualCount').textContent = manualCount.toLocaleString(); 
-      $('unmatchedCount').textContent = abnormalCount.toLocaleString();
+      $('matchedCount').textContent = successful.toLocaleString();$('voidCount').textContent = voidCount.toLocaleString();
+      $('manualCount').textContent = manualCount.toLocaleString();$('unmatchedCount').textContent = abnormalCount.toLocaleString();
+
+      $('omgTotalAmount').textContent = '$' + omgAmtSum.toLocaleString();
+      $('ecpayTotalAmount').textContent = '$' + ecpayAmtSum.toLocaleString();
+      
+      if (state.rows.length > 0) {
+        const amtColor = (omgAmtSum === ecpayAmtSum) ? '#1d4ed8' : '#b91c1c'; 
+        $('omgTotalAmount').style.color = amtColor;
+        $('ecpayTotalAmount').style.color = amtColor;
+      } else {
+        $('omgTotalAmount').style.color = '';$('ecpayTotalAmount').style.color = '';
+      }
       
       const omgPaidCount = state.rows.filter(row => row.omg && get(row.omg, '付款狀態').includes('已付款')).length;
-      const ecpayValidCount = state.rows.filter(row => row.ecpay && get(row.ecpay, '發票號碼') && get(row.ecpay, '異動') !== '已作廢').length;
+      const ecpayValidCount = state.rows.filter(row => row.ecpay && get(row.ecpay, '發票號碼') && !isVoid(row)).length;
 
       if (state.rows.length > 0 && omgPaidCount > 0 && omgPaidCount === ecpayValidCount) {
         $('perfectMatchBanner').style.display = 'flex';
@@ -321,14 +492,9 @@
     function exportResults() { const lines=[outputColumns.map(x=>csvCell(x[0])).join(',')]; state.rows.forEach(row=>lines.push(outputColumns.map(([name,source])=>csvCell(source==='status'?outcome(row):displayValue(row,source,name))).join(','))); const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='OMG_綠界核對結果.csv';a.click();URL.revokeObjectURL(a.href); }
     setupPicker('omg'); setupPicker('ecpay');
     
-    // 按鈕與 Dialog 邏輯設定
-    $('startBtn').onclick = () => { $('infoDialog').close(); $('fileDialog').showModal(); };
-    $('chooseBtn').onclick=()=>{ $('error').classList.remove('show'); $('fileDialog').showModal(); };
-    $('filter').oninput=render; ['paymentStatusFilter','settlementStatusFilter','changeFilter'].forEach(id=>$(id).onchange=render); document.querySelectorAll('input[name="view"]').forEach(input=>input.onchange=render); $('exportBtn').onclick=exportResults;
-    $('mergeBtn').onclick=async e=> { e.preventDefault(); $('error').classList.remove('show'); try { const [first,second]=await Promise.all([readFile($('omgFile').files[0]),readFile($('ecpayFile').files[0])]); const firstHeaders=Object.keys(first[0]||{}), secondHeaders=Object.keys(second[0]||{}); state.omg=firstHeaders.includes('廠商訂單編號') ? first : secondHeaders.includes('廠商訂單編號') ? second : null; state.ecpay=firstHeaders.includes('發票號碼') ? first : secondHeaders.includes('發票號碼') ? second : null; if (!state.omg || !state.ecpay) throw new Error('無法辨識檔案。OMG 檔需有「廠商訂單編號」，綠界檔需有「發票號碼」。'); if (!Object.keys(state.ecpay[0]||{}).includes('自訂編號')) throw new Error('綠界檔案缺少「自訂編號」，無法與 OMG 訂單編號比對。'); $('omgName').textContent=$('omgFile').files[0].name; $('ecpayName').textContent=$('ecpayFile').files[0].name; $('omgDot').classList.add('ready'); $('ecpayDot').classList.add('ready'); merge(); } catch(err) { fail(err.message); } };
-    
-    // 網頁一開啟時，優先顯示系統核對邏輯說明
-    $('infoDialog').showModal();
+    $('startBtn').onclick = () => { $('infoDialog').close();$('fileDialog').showModal(); };
+    $('chooseBtn').onclick=()=>{$('error').classList.remove('show'); $('fileDialog').showModal(); };$('filter').oninput=render; ['paymentStatusFilter','settlementStatusFilter','changeFilter'].forEach(id=>$(id).onchange=render); document.querySelectorAll('input[name="view"]').forEach(input=>input.onchange=render); $('exportBtn').onclick=exportResults;
+    $('mergeBtn').onclick=async e=> { e.preventDefault();$('error').classList.remove('show'); try { const [first,second]=await Promise.all([readFile($('omgFile').files[0]),readFile($('ecpayFile').files[0])]); const firstHeaders=Object.keys(first[0]||{}), secondHeaders=Object.keys(second[0]||{}); state.omg=firstHeaders.includes('廠商訂單編號') ? first : secondHeaders.includes('廠商訂單編號') ? second : null; state.ecpay=firstHeaders.includes('發票號碼') ? first : secondHeaders.includes('發票號碼') ? second : null; if (!state.omg || !state.ecpay) throw new Error('無法辨識檔案。OMG 檔需有「廠商訂單編號」，綠界檔需有「發票號碼」。'); if (!Object.keys(state.ecpay[0]||{}).includes('自訂編號')) throw new Error('綠界檔案缺少「自訂編號」，無法與 OMG 訂單編號比對。'); $('omgName').textContent=$('omgFile').files[0].name; $('ecpayName').textContent=$('ecpayFile').files[0].name; $('omgDot').classList.add('ready'); $('ecpayDot').classList.add('ready'); merge(); } catch(err) { fail(err.message); } };$('infoDialog').showModal();
   </script>
 </body>
 </html>
