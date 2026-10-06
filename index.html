@@ -34,19 +34,28 @@
     .button.secondary { color:#28554f; background:var(--brand-pale); }
     
     .summary { display:grid; grid-template-columns:repeat(5,1fr); gap:15px; margin:22px 0; }
-    .metric { padding:18px 20px; background:#fff; border:1px solid var(--line); border-radius:14px; }
-    .metric .value { display:block; margin-bottom:5px; font-size:27px; font-weight:800; letter-spacing:-.04em; }
+    
+    /* 更新卡片樣式為可點擊的按鈕 */
+    .metric { 
+      padding:18px 20px; background:#fff; border:1px solid var(--line); border-radius:14px; 
+      cursor: pointer; transition: all 0.2s ease; position: relative;
+    }
+    .metric:hover { border-color: #a0aab5; transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.05); }
+    .metric.active { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-pale); background: #fcfdfe; }
+    
+    .metric .value { display:block; margin-bottom:5px; font-size:27px; font-weight:800; letter-spacing:-.04em; pointer-events: none; }
     .metric .label { color:var(--muted); font-size:13px; }
     
-    .amount-compare { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #d7dfe8; font-size: 13px; line-height: 1.6; color: var(--muted); }
+    .amount-compare { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #d7dfe8; font-size: 13px; line-height: 1.6; color: var(--muted); pointer-events: none; }
     .amount-compare div { display: flex; justify-content: space-between; align-items: center; }
     .amount-compare span.amt-val { font-weight: 700; color: #123f47; transition: color 0.3s; }
     
+    /* 確保 tooltip 不阻擋點擊事件 */
     .tooltip-icon {
       display: inline-flex; align-items: center; justify-content: center;
       width: 15px; height: 15px; background: #94a3b8; color: #fff;
       font-size: 11px; font-weight: bold; border-radius: 50%; cursor: help;
-      position: relative; margin-left: 4px; flex-shrink: 0;
+      position: relative; margin-left: 4px; flex-shrink: 0; pointer-events: auto;
     }
     .tooltip-icon:hover { background: #64748b; }
     
@@ -81,10 +90,7 @@
     .table-card { overflow:hidden; }
     .table-head { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px 16px; padding:17px 20px; border-bottom:1px solid var(--line); }
     .table-head h2 { margin:0; font-size:16px; }
-    .view-controls { display:flex; align-items:center; gap:5px; padding:4px; background:#f1f4f6; border-radius:9px; overflow-x: auto; }
-    .view-controls label { padding:7px 10px; border-radius:6px; color:#596778; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; }
-    .view-controls input { position:absolute; opacity:0; pointer-events:none; }
-    .view-controls label:has(input:checked) { color:#155c53; background:#fff; box-shadow:0 1px 3px rgba(26,43,59,.12); }
+    
     .filter { width:min(300px,50%); padding:9px 11px; color:var(--ink); outline:none; border:1px solid #d7dfe8; border-radius:8px; }
     .filter:focus { border-color:var(--brand); box-shadow:0 0 0 3px var(--brand-pale); }
     .criteria { display:flex; flex:1 1 100%; gap:9px; }
@@ -102,30 +108,28 @@
     .table-wrap::-webkit-scrollbar-thumb { background: #c1c8d1; border-radius: 4px; }
     .table-wrap::-webkit-scrollbar-thumb:hover { background: #a0aab5; }
 
-    /* ========== 恢復原本的捲動表格設計，並強制不換行 ========== */
     table { 
       width: 100%; 
-      min-width: max-content; /* 允許表格自然撐開產生水平捲軸 */
+      min-width: max-content; 
       border-collapse: separate; 
       border-spacing: 0; 
-      font-size: 13px; /* 恢復原本大小 */
+      font-size: 13px; 
     }
     
     th { 
       position: sticky; top: 0; z-index: 1; text-align: left; 
-      white-space: nowrap; /* 強制標題不換行 */
+      white-space: nowrap; 
       color: #536173; background: #f8fafc; font-weight: 700; 
     }
     
     th, td { 
-      padding: 13px 14px; /* 恢復原本舒適的內距 */
+      padding: 13px 14px; 
       border-bottom: 1px solid #edf0f4; 
       vertical-align: middle; 
-      white-space: nowrap; /* 強制所有內容都不換行 */
+      white-space: nowrap; 
     }
     
     tbody tr:hover td { background:#fbfefd; }
-    /* ========================================== */
 
     .status { display:inline-block; padding:3px 8px; border-radius:20px; font-size:12px; font-weight:700; white-space:nowrap; }
     .status.matched { color:#15714f; background:#e7f7ef; }
@@ -182,8 +186,9 @@
       <div class="actions"><button class="button secondary" id="exportBtn" disabled>匯出核對結果</button><button class="button" id="chooseBtn">選擇檔案</button></div>
     </section>
     
-    <section class="summary" aria-label="核對摘要">
-      <div class="metric">
+    <section class="summary" aria-label="核對摘要" id="summaryCards">
+      <!-- 加入 data-view 屬性與 active class 供 JS 讀取與切換狀態 -->
+      <div class="metric active" data-view="all" title="點擊篩選：所有資料">
         <span class="value" id="totalCount">—</span>
         <span class="label" style="display:flex; align-items:center;">
           合併資料總筆數
@@ -203,28 +208,28 @@
           </div>
         </div>
       </div>
-      <div class="metric">
+      <div class="metric" data-view="success" title="點擊篩選：OMG成功交易">
         <span class="value" id="matchedCount">—</span>
         <span class="label" style="display:flex; align-items:center;">
           OMG成功交易
           <span class="tooltip-icon" data-tooltip="OMG狀態為「已付款」，且有對應到未作廢的綠界發票">!</span>
         </span>
       </div>
-      <div class="metric">
+      <div class="metric" data-view="void" title="點擊篩選：綠界作廢發票">
         <span class="value" id="voidCount">—</span>
         <span class="label" style="display:flex; align-items:center;">
           綠界作廢發票
           <span class="tooltip-icon" data-tooltip="綠界報表中「異動」欄位為「已作廢」的資料">!</span>
         </span>
       </div>
-      <div class="metric">
+      <div class="metric" data-view="manual" title="點擊篩選：綠界手開發票">
         <span class="value" id="manualCount">—</span>
         <span class="label" style="display:flex; align-items:center;">
           綠界手開發票
           <span class="tooltip-icon" data-tooltip="綠界有開立未作廢發票，但找不到對應的OMG訂單">!</span>
         </span>
       </div>
-      <div class="metric">
+      <div class="metric" data-view="abnormal" title="點擊篩選：異常資料">
         <span class="value" id="unmatchedCount">—</span>
         <span class="label" style="display:flex; align-items:center;">
           異常資料
@@ -238,12 +243,7 @@
     <section class="table-card">
       <div class="table-head">
         <h2>合併核對明細</h2>
-        <div class="view-controls" role="radiogroup" aria-label="顯示範圍">
-          <label><input type="radio" name="view" value="all" checked />所有資料</label>
-          <label><input type="radio" name="view" value="success" />OMG成功交易</label>
-          <label><input type="radio" name="view" value="manual" />綠界手開發票</label>
-          <label><input type="radio" name="view" value="abnormal" />異常資料</label>
-        </div>
+        <!-- 移除原本的 .view-controls (按鈕組) -->
         <div class="criteria" aria-label="欄位篩選">
           <select id="paymentStatusFilter" disabled><option value="__all__">付款狀態：全部</option></select>
           <select id="settlementStatusFilter" disabled><option value="__all__">撥款狀態：全部</option></select>
@@ -302,7 +302,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
-    // 將「核對結果」移到最前面
     const outputColumns = [
       ['核對結果', 'status'], ['訂單日期', 'omg'], ['廠商訂單編號', 'omg'], ['歐買尬金流訂單編號', 'omg'], ['付款方式', 'omg'], ['付款狀態', 'omg'], ['交易金額', 'omg'], ['撥款狀態', 'omg'], ['商品名稱', 'omg'], ['發票號碼', 'ecpay'], ['上傳狀態', 'ecpay'], ['異動', 'ecpay'], ['發票金額', 'ecpayAmt']
     ];
@@ -392,6 +391,16 @@
       configure('settlementStatusFilter', '撥款狀態', state.rows.map(row=>displayValue(row, 'omg', '撥款狀態')));
       configure('changeFilter', '異動', state.rows.map(row=>get(row.ecpay, '異動')));
     }
+    
+    // 設定統計卡片的點擊切換邏輯
+    document.querySelectorAll('.metric').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.metric').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        render(); // 觸發重新渲染表格
+      });
+    });
+
     function render() {
       $('headers').innerHTML = outputColumns.map(([name, source]) => {
         let tip = '';
@@ -407,7 +416,8 @@
         </th>`;
       }).join('');
       
-      const view=document.querySelector('input[name="view"]:checked').value;
+      // 從目前 active 的卡片取得要顯示的視圖
+      const view = document.querySelector('.metric.active').dataset.view;
       const payment=$('paymentStatusFilter').value, settlement=$('settlementStatusFilter').value, change=$('changeFilter').value;
       
       const renderRows = state.rows.filter(row => { 
@@ -419,6 +429,7 @@
         
         const inView = view === 'all' || 
                        (view === 'success' ? success : false) || 
+                       (view === 'void' ? voidData : false) ||
                        (view === 'manual' ? manual : false) || 
                        (view === 'abnormal' ? abnormal : false);
                        
@@ -493,7 +504,7 @@
     setupPicker('omg'); setupPicker('ecpay');
     
     $('startBtn').onclick = () => { $('infoDialog').close();$('fileDialog').showModal(); };
-    $('chooseBtn').onclick=()=>{$('error').classList.remove('show'); $('fileDialog').showModal(); };$('filter').oninput=render; ['paymentStatusFilter','settlementStatusFilter','changeFilter'].forEach(id=>$(id).onchange=render); document.querySelectorAll('input[name="view"]').forEach(input=>input.onchange=render); $('exportBtn').onclick=exportResults;
+    $('chooseBtn').onclick=()=>{$('error').classList.remove('show'); $('fileDialog').showModal(); };$('filter').oninput=render; ['paymentStatusFilter','settlementStatusFilter','changeFilter'].forEach(id=>$(id).onchange=render);$('exportBtn').onclick=exportResults;
     $('mergeBtn').onclick=async e=> { e.preventDefault();$('error').classList.remove('show'); try { const [first,second]=await Promise.all([readFile($('omgFile').files[0]),readFile($('ecpayFile').files[0])]); const firstHeaders=Object.keys(first[0]||{}), secondHeaders=Object.keys(second[0]||{}); state.omg=firstHeaders.includes('廠商訂單編號') ? first : secondHeaders.includes('廠商訂單編號') ? second : null; state.ecpay=firstHeaders.includes('發票號碼') ? first : secondHeaders.includes('發票號碼') ? second : null; if (!state.omg || !state.ecpay) throw new Error('無法辨識檔案。OMG 檔需有「廠商訂單編號」，綠界檔需有「發票號碼」。'); if (!Object.keys(state.ecpay[0]||{}).includes('自訂編號')) throw new Error('綠界檔案缺少「自訂編號」，無法與 OMG 訂單編號比對。'); $('omgName').textContent=$('omgFile').files[0].name; $('ecpayName').textContent=$('ecpayFile').files[0].name; $('omgDot').classList.add('ready'); $('ecpayDot').classList.add('ready'); merge(); } catch(err) { fail(err.message); } };$('infoDialog').showModal();
   </script>
 </body>
