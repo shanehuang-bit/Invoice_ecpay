@@ -35,7 +35,6 @@
     
     .summary { display:grid; grid-template-columns:repeat(5,1fr); gap:15px; margin:22px 0; }
     
-    /* 更新卡片樣式為可點擊的按鈕 */
     .metric { 
       padding:18px 20px; background:#fff; border:1px solid var(--line); border-radius:14px; 
       cursor: pointer; transition: all 0.2s ease; position: relative;
@@ -50,7 +49,6 @@
     .amount-compare div { display: flex; justify-content: space-between; align-items: center; }
     .amount-compare span.amt-val { font-weight: 700; color: #123f47; transition: color 0.3s; }
     
-    /* 確保 tooltip 不阻擋點擊事件 */
     .tooltip-icon {
       display: inline-flex; align-items: center; justify-content: center;
       width: 15px; height: 15px; background: #94a3b8; color: #fff;
@@ -59,22 +57,29 @@
     }
     .tooltip-icon:hover { background: #64748b; }
     
-    /* 預設提示框 (往上浮出) */
+    /* 預設提示框 (往上浮出，允許斷行) */
     .tooltip-icon::after {
       content: attr(data-tooltip);
       position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-      margin-bottom: 8px; padding: 6px 10px; background: #1e293b; color: #fff;
-      font-size: 12px; font-weight: normal; white-space: nowrap; border-radius: 6px;
-      opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10;
+      margin-bottom: 8px; padding: 8px 12px; background: #1e293b; color: #fff;
+      font-size: 12px; font-weight: normal; border-radius: 6px;
+      /* 修復過長被截斷的問題：允許換行並限制最大寬度 */
+      white-space: normal; 
+      width: max-content; 
+      max-width: 220px; 
+      line-height: 1.45;
+      text-align: left;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 9999;
     }
     .tooltip-icon::before {
       content: '';
       position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
       margin-bottom: 2px; border: 4px solid transparent; border-top-color: #1e293b;
-      opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 10;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 9999;
     }
     
-    /* 表格標題專用提示框 (往下浮出，避免被捲動區域切斷) */
+    /* 表格標題專用提示框 (往下浮出) */
     .tooltip-icon.down::after {
       bottom: auto; top: 100%; margin-bottom: 0; margin-top: 8px;
     }
@@ -187,7 +192,6 @@
     </section>
     
     <section class="summary" aria-label="核對摘要" id="summaryCards">
-      <!-- 加入 data-view 屬性與 active class 供 JS 讀取與切換狀態 -->
       <div class="metric active" data-view="all" title="點擊篩選：所有資料">
         <span class="value" id="totalCount">—</span>
         <span class="label" style="display:flex; align-items:center;">
@@ -243,7 +247,6 @@
     <section class="table-card">
       <div class="table-head">
         <h2>合併核對明細</h2>
-        <!-- 移除原本的 .view-controls (按鈕組) -->
         <div class="criteria" aria-label="欄位篩選">
           <select id="paymentStatusFilter" disabled><option value="__all__">付款狀態：全部</option></select>
           <select id="settlementStatusFilter" disabled><option value="__all__">撥款狀態：全部</option></select>
@@ -392,12 +395,11 @@
       configure('changeFilter', '異動', state.rows.map(row=>get(row.ecpay, '異動')));
     }
     
-    // 設定統計卡片的點擊切換邏輯
     document.querySelectorAll('.metric').forEach(card => {
       card.addEventListener('click', () => {
         document.querySelectorAll('.metric').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
-        render(); // 觸發重新渲染表格
+        render(); 
       });
     });
 
@@ -416,7 +418,6 @@
         </th>`;
       }).join('');
       
-      // 從目前 active 的卡片取得要顯示的視圖
       const view = document.querySelector('.metric.active').dataset.view;
       const payment=$('paymentStatusFilter').value, settlement=$('settlementStatusFilter').value, change=$('changeFilter').value;
       
