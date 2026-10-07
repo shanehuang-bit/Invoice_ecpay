@@ -63,7 +63,6 @@
       position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
       margin-bottom: 8px; padding: 8px 12px; background: #1e293b; color: #fff;
       font-size: 12px; font-weight: normal; border-radius: 6px;
-      /* 修復過長被截斷的問題：允許換行並限制最大寬度 */
       white-space: normal; 
       width: max-content; 
       max-width: 220px; 
@@ -179,7 +178,7 @@
 </head>
 <body>
   <header class="top">
-    <div class="last-update">最後更新日：2026/10/06</div>
+    <div class="last-update">最後更新日：2026/10/07</div>
     <p class="eyebrow">ORDER &amp; INVOICE RECONCILIATION</p>
     <h1>OMG × 綠界B2C核對中心</h1>
     <p class="subtitle">以「廠商訂單編號」與綠界「自訂編號」自動交叉比對，完整保留雙方未配對資料。</p>
@@ -192,51 +191,78 @@
     </section>
     
     <section class="summary" aria-label="核對摘要" id="summaryCards">
+      <!-- 合併資料總筆數 -->
       <div class="metric active" data-view="all" title="點擊篩選：所有資料">
         <span class="value" id="totalCount">—</span>
         <span class="label" style="display:flex; align-items:center;">
           合併資料總筆數
           <span class="tooltip-icon" data-tooltip="OMG所有訂單，加上綠界無對應訂單的發票總和">!</span>
         </span>
-        <div class="amount-compare">
+        <div class="amount-compare" id="allAmountCompare">
           <div>
-            <span>OMG交易總額:</span> 
-            <span id="omgTotalAmount" class="amt-val">—</span>
-          </div>
-          <div>
-            <span style="display:flex; align-items:center;">
-              綠界發票總額
-              <span class="tooltip-icon" data-tooltip="兩項皆為成功交易總額，並已扣除作廢發票金額">!</span>:
-            </span> 
-            <span id="ecpayTotalAmount" class="amt-val">—</span>
+            <span>平台對帳總額:</span> 
+            <span class="amt-val">—</span>
           </div>
         </div>
       </div>
+      
+      <!-- OMG成功交易 -->
       <div class="metric" data-view="success" title="點擊篩選：OMG成功交易">
         <span class="value" id="matchedCount">—</span>
         <span class="label" style="display:flex; align-items:center;">
           OMG成功交易
           <span class="tooltip-icon" data-tooltip="OMG狀態為「已付款」，且有對應到未作廢的綠界發票">!</span>
         </span>
+        <div class="amount-compare">
+          <div>
+            <span>OMG交易總額:</span> 
+            <span id="omgTotalAmountSuccess" class="amt-val">—</span>
+          </div>
+          <div>
+            <span style="display:flex; align-items:center;">
+              綠界發票總額
+              <span class="tooltip-icon" data-tooltip="不包含作廢發票">!</span>:
+            </span> 
+            <span id="ecpayTotalAmountSuccess" class="amt-val">—</span>
+          </div>
+        </div>
       </div>
+      
+      <!-- 綠界作廢發票 -->
       <div class="metric" data-view="void" title="點擊篩選：綠界作廢發票">
         <span class="value" id="voidCount">—</span>
         <span class="label" style="display:flex; align-items:center;">
           綠界作廢發票
           <span class="tooltip-icon" data-tooltip="綠界報表中「異動」欄位為「已作廢」的資料">!</span>
         </span>
+        <div class="amount-compare">
+          <div>
+            <span>作廢發票總額:</span> 
+            <span id="ecpayTotalAmountVoid" class="amt-val" style="color: #475569;">—</span>
+          </div>
+        </div>
       </div>
+      
+      <!-- 綠界手開發票 -->
       <div class="metric" data-view="manual" title="點擊篩選：綠界手開發票">
         <span class="value" id="manualCount">—</span>
         <span class="label" style="display:flex; align-items:center;">
           綠界手開發票
           <span class="tooltip-icon" data-tooltip="綠界有開立未作廢發票，但找不到對應的OMG訂單">!</span>
         </span>
+        <div class="amount-compare">
+          <div>
+            <span>手開發票總額:</span> 
+            <span id="ecpayTotalAmountManual" class="amt-val" style="color: #0d5c75;">—</span>
+          </div>
+        </div>
       </div>
-      <div class="metric" data-view="abnormal" title="點擊篩選：異常資料">
+      
+      <!-- 無效訂單 -->
+      <div class="metric" data-view="abnormal" title="點擊篩選：無效訂單">
         <span class="value" id="unmatchedCount">—</span>
         <span class="label" style="display:flex; align-items:center;">
-          異常資料
+          無效訂單
           <span class="tooltip-icon" data-tooltip="OMG有訂單但無發票、未完成付款，或其他無法成功配對的狀況">!</span>
         </span>
       </div>
@@ -271,11 +297,11 @@
         <h3>3. 綠界手開發票</h3>
         <p>綠界報表中有發票號碼，但無法在 OMG 報表中找到對應訂單。</p>
         
-        <h3>4. 異常資料</h3>
+        <h3>4. 無效訂單</h3>
         <p>包含以下狀況：OMG有訂單但未找到發票、綠界未找到發票號碼、發票已作廢、付款未完成。</p>
 
         <h3>5. 完美核對條件</h3>
-        <p>當<strong>「OMG 已付款的總筆數」</strong>等於<strong>「綠界發票總數（排除已作廢）」</strong>時，即代表應開發票數量與有效發票數量完全吻合，系統會顯示「🎉 完美核對！」提示橫幅。</p>
+        <p>當<strong>「OMG 已付款且未作廢的訂單總數」</strong>等於<strong>「綠界有效發票總數」</strong>，且<strong>雙方交易金額相符</strong>時，系統會顯示「🎉 完美核對！」提示橫幅。</p>
 
         <div class="note-box">
           <strong>⚠️ 備註說明</strong>
@@ -349,7 +375,7 @@
       ['dragleave','drop'].forEach(event => zone.addEventListener(event,e=>{e.preventDefault();zone.classList.remove('drag')}));
       zone.addEventListener('drop',e=>{ const file=e.dataTransfer.files[0]; if (!file) return; const data=new DataTransfer();data.items.add(file);input.files=data.files;input.dispatchEvent(new Event('change')); });
     }
-    function validateSelections() { $('mergeBtn').disabled = !($('omgFile').files[0] && $('ecpayFile').files[0]); }
+    function validateSelections() { $('mergeBtn').disabled = !($('omgFile').files[0] &&$('ecpayFile').files[0]); }
     function fail(message) { $('error').textContent=message; $('error').classList.add('show'); }
     function get(row, field) { return row?.[field] || ''; }
     function displayValue(row, source, field) {
@@ -440,14 +466,25 @@
         return inView && matchesFields && (!q || searchable); 
       });
 
-      let omgAmtSum = 0;
-      let ecpayAmtSum = 0;
+      let omgAmtSuccess = 0;
+      let ecpayAmtValid = 0;
+      let ecpayAmtVoid = 0;
+      let ecpayAmtManual = 0;
+
       state.rows.forEach(row => {
-        if (row.omg && isSuccess(row)) omgAmtSum += parseFloat(get(row.omg, '交易金額').replace(/,/g, '')) || 0;
-        if (row.ecpay && !isVoid(row)) {
+        let oAmt = 0;
+        let eAmt = 0;
+
+        if (row.omg) oAmt = parseFloat(get(row.omg, '交易金額').replace(/,/g, '')) || 0;
+        if (row.ecpay) {
           const ecpayAmtStr = getEcpayAmount(row.ecpay);
-          ecpayAmtSum += parseFloat(ecpayAmtStr.replace(/,/g, '')) || 0;
+          eAmt = parseFloat(ecpayAmtStr.replace(/,/g, '')) || 0;
         }
+
+        if (isSuccess(row)) omgAmtSuccess += oAmt;
+        if (row.ecpay && !isVoid(row)) ecpayAmtValid += eAmt;
+        if (isVoid(row)) ecpayAmtVoid += eAmt;
+        if (isManual(row)) ecpayAmtManual += eAmt;
       });
       
       $('results').innerHTML=renderRows.length ? renderRows.map(row => { 
@@ -477,21 +514,58 @@
       $('matchedCount').textContent = successful.toLocaleString();$('voidCount').textContent = voidCount.toLocaleString();
       $('manualCount').textContent = manualCount.toLocaleString();$('unmatchedCount').textContent = abnormalCount.toLocaleString();
 
-      $('omgTotalAmount').textContent = '$' + omgAmtSum.toLocaleString();
-      $('ecpayTotalAmount').textContent = '$' + ecpayAmtSum.toLocaleString();
+      // 卡片1 (合併總筆數) 的對帳邏輯：OMG成功總額 vs 綠界有效發票總額
+      const allAmountCompareDiv = $('allAmountCompare');
+      if (state.rows.length === 0) {
+        allAmountCompareDiv.innerHTML = `<div><span>平台對帳總額:</span><span class="amt-val">—</span></div>`;
+      } else {
+        if (omgAmtSuccess === ecpayAmtValid) {
+          const totalReconAmt = omgAmtSuccess + ecpayAmtVoid;
+          allAmountCompareDiv.innerHTML = `
+            <div>
+              <span style="display:flex; align-items:center;">
+                平台對帳總額
+                <span class="tooltip-icon" data-tooltip="OMG成功交易總額＋綠界作廢發票總額">!</span>:
+              </span> 
+              <span class="amt-val" style="color: #1d4ed8;">$${totalReconAmt.toLocaleString()}</span>
+            </div>
+          `;
+        } else {
+          allAmountCompareDiv.innerHTML = `
+            <div>
+              <span style="display:flex; align-items:center; color: #b91c1c; font-weight: 700;">
+                平台對帳異常
+                <span class="tooltip-icon" data-tooltip="OMG成功交易總額與綠界有效發票總額不符">!</span>:
+              </span> 
+              <span class="amt-val" style="color: #b91c1c;">異常</span>
+            </div>
+          `;
+        }
+      }
+
+      // 卡片2
+      $('omgTotalAmountSuccess').textContent = '$' + omgAmtSuccess.toLocaleString();
+      $('ecpayTotalAmountSuccess').textContent = '$' + ecpayAmtValid.toLocaleString();
+
+      // 卡片3
+      $('ecpayTotalAmountVoid').textContent = '$' + ecpayAmtVoid.toLocaleString();
+
+      // 卡片4
+      $('ecpayTotalAmountManual').textContent = '$' + ecpayAmtManual.toLocaleString();
       
       if (state.rows.length > 0) {
-        const amtColor = (omgAmtSum === ecpayAmtSum) ? '#1d4ed8' : '#b91c1c'; 
-        $('omgTotalAmount').style.color = amtColor;
-        $('ecpayTotalAmount').style.color = amtColor;
+        const amtColorSuccess = (omgAmtSuccess === ecpayAmtValid) ? '#1d4ed8' : '#b91c1c'; 
+        $('omgTotalAmountSuccess').style.color = amtColorSuccess;
+        $('ecpayTotalAmountSuccess').style.color = amtColorSuccess;
       } else {
-        $('omgTotalAmount').style.color = '';$('ecpayTotalAmount').style.color = '';
+        $('omgTotalAmountSuccess').style.color = '';$('ecpayTotalAmountSuccess').style.color = '';
       }
       
-      const omgPaidCount = state.rows.filter(row => row.omg && get(row.omg, '付款狀態').includes('已付款')).length;
+      // 更新完美核對的條件邏輯：(已付款且未作廢數量 == 綠界有效數量) && (雙方金額相符)
+      const omgPaidValidCount = state.rows.filter(row => row.omg && get(row.omg, '付款狀態').includes('已付款') && !isVoid(row)).length;
       const ecpayValidCount = state.rows.filter(row => row.ecpay && get(row.ecpay, '發票號碼') && !isVoid(row)).length;
 
-      if (state.rows.length > 0 && omgPaidCount > 0 && omgPaidCount === ecpayValidCount) {
+      if (state.rows.length > 0 && omgPaidValidCount > 0 && omgPaidValidCount === ecpayValidCount && omgAmtSuccess === ecpayAmtValid) {
         $('perfectMatchBanner').style.display = 'flex';
       } else {
         $('perfectMatchBanner').style.display = 'none';
